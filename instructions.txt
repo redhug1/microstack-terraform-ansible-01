@@ -1,0 +1,128 @@
+24th April 2021
+
+Experiments to see if microstack single node is good enough for Terrafom training
+
+Install single node on ubuntu box
+
+1. Install all files:
+	sudo snap install microstack --beta --devmode
+
+2. Initialise microstack:
+	sudo microstack init --auto --control
+	
+3. Obtain password to access GUI:
+	sudo snap get microstack config.credentials.keystone-password
+
+4. Openstack GUI at:
+	http://10.20.20.1/
+
+   and login as: admin
+   using password from step 3
+
+5. Change admin password to something that can be remembered, and used in coming steps.
+
+	Run:
+
+	openstack keypair create KEY_NAME > MY_KEY
+
+	chmod 600 MY_KEY
+
+	ssh-keygen -y -f MY_KEY >MY_KEY.pub
+
+	mv MY_KEY.pub ~/.ssh
+	mv MY_KEY ~/.ssh
+
+6.
+	sudo snap install openstackclients
+
+7. In openstack GUI, top right, admin:
+	Get the file: admin-openrc.sh 
+
+8.
+	source admin-openrc.sh
+
+9.
+	openstack image create --container-format bare --disk-format qcow2 --file focal-server-cloudimg-amd64.img Ubuntu-20.04
+
+10.
+	Install Terraform	
+
+11. Remove previous terraform files from test folder (as they may have come from a different machine):
+
+	rm .terraform.lock.hcl
+	rm -r .terraform
+	rm terraform.tfstate
+	rm terraform.tfstate.backup
+
+12. edit file: variables.tf and change the line that has the "openstack_auth_url"
+    to have same IP as in file admin-openrc.sh, its variable: OS_AUTH_URL
+
+13. copy files: MY_KEY  MY_KEY.pub to ~/.ssh
+
+14. Do stuff at end of:
+	https://thenewstack.io/solving-a-common-beginners-problem-when-pinging-from-an-openstack-instance/
+
+15.
+	terraform init
+
+   to see output (something like):
+
+Initializing the backend...
+
+Initializing provider plugins...
+- Finding terraform-provider-openstack/openstack versions matching "~> 1.35.0"...
+- Finding latest version of hashicorp/null...
+- Installing terraform-provider-openstack/openstack v1.35.0...
+- Installed terraform-provider-openstack/openstack v1.35.0 (self-signed, key ID 4F80527A391BEFD2)
+- Installing hashicorp/null v3.1.0...
+- Installed hashicorp/null v3.1.0 (signed by HashiCorp)
+
+16.
+	terraform plan
+
+17.
+	terraform apply
+
+18. If the above works without any errors, it should output the address of the floating IP assigned to the instance
+    of ubuntu 20.04lts now running in openstack.
+    This floating IP will typically be: <10.20.20.???>
+
+    In the openstack web GUI, goto: Network -> Network Topology
+    Click on the little terminal icon and click on Open Console, and login as user: ubuntu, password: ubuntu
+    You should be able to ping google.com
+
+19. In firefox on host open <floating IP>:80
+    to see: 'Welcome to nginx'
+
+20. Congrats !
+
+	You can now loop over the following sequence to experiment:
+
+	a)
+		terraform destroy
+	b)
+		Edit & save the terraform files
+	c)
+		terraform plan
+	d)
+		terraform apply
+	e)
+		goto step 18
+
+21. close everything down in an orderly manner:
+
+	terraform destroy
+
+	sudo snap disable microstack
+
+-=-=-
+
+To come back to this to do further experiments with terraform source files, do:
+
+	a) enable microstack:
+
+		sudo snap enable microstack
+
+	b) execute step 8 above
+
+	c) execute step 15 and onwards above 
